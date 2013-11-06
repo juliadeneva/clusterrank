@@ -1,0 +1,16 @@
+Scripts for identifying and ranking clusters of single pulse events in Presto .singlepulse output files. The ranking of each cluster is based on the R^2 goodness of fit value for fitting its shape in SNR vs DM space with Eq. 12 and 13 from Cordes & MacLaughlin 2003, ApJ, 596, 1142. 
+
+The ranks run from 0 to 1, with 1 being best. A rank is either the actual R^2 value for the best fit, or a "penalized" R^2 value in the case of non-physical best fits or cases of pulses whose best-fit DM is very close to 0. 
+
+spplot.py -> operates on one beam's worth of .singlepulse files; the dir containing the files is passed as a command-line argument to spplot.py
+
+driver.py -> calls spplot.py on a set of directories containing .singlepulse files for different beams; the top dir containing these dirs is passed as a command-line argument to driver.py. This also allows the code to run for a long time (e.g. when running on a long list of dirs) without being slowed down by memory leaks that most likely originate in Pylab figure creation and manipulation. 
+
+Required modules: numpy, scipy, matplotlib
+
+Parameters that need to be adjusted for each survey are in the beginning of spplot.py. 
+
+The plot file name for a beam begins with the highest cluster rank for that beam, so plots can be easily sorted for viewing in rank-descending order. Ranks of 0.0 indicate non-physical fits or obvious RFI. Known pulsars tested so far have pulse ranks >0.7. Viewing plots with rank > 0.7 decreases by 1-2 orders of magnitude the number of plots for human inspection. 
+
+False positives are due to RFI. False negatives occur if there are multiple weak events whose signature is narrow in DM. In this case there is not much of a shape in SNR vs DM space to fit, and the events may not be identified as or obvious to the eye as clusters but may still produce a sharp peak in a histogram of # of pulses vs DM. 
+
