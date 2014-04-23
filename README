@@ -2,7 +2,7 @@ Scripts for identifying and ranking clusters of single pulse events in Presto .s
 
 The ranks run from 0 to 1, with 1 being best. A rank is either the actual R^2 value for the best fit, or a "penalized" R^2 value in the case of non-physical best fits or cases of pulses whose best-fit DM is very close to 0. 
 
-spplot.py -> operates on one beam's worth of .singlepulse files; the dir containing the files is passed as a command-line argument to spplot.py
+spplot.py -> operates on one beam's worth of .singlepulse files; the dir containing the files is passed as a command-line argument to spplot.py. This file contains two main functions: clusterrank and histrank (details below). 
 
 driver.py -> calls spplot.py on a set of directories containing .singlepulse files for different beams; the top dir containing these dirs is passed as a command-line argument to driver.py. This also allows the code to run for a long time (e.g. when running on a long list of dirs) without being slowed down by memory leaks that most likely originate in Pylab figure creation and manipulation. 
 
@@ -10,7 +10,24 @@ Required modules: numpy, scipy, matplotlib
 
 Parameters that need to be adjusted for each survey are in the beginning of spplot.py. 
 
+Clusterrank:
+-------------
+
 The plot file name for a beam begins with the highest cluster rank for that beam, so plots can be easily sorted for viewing in rank-descending order. Ranks of 0.0 indicate non-physical fits or obvious RFI. Known pulsars tested so far have pulse ranks >0.7. Viewing plots with rank > 0.7 decreases by 1-2 orders of magnitude the number of plots for human inspection. 
 
-False positives are due to RFI. False negatives occur if there are multiple weak events whose signature is narrow in DM. In this case there is not much of a shape in SNR vs DM space to fit, and the events may not be identified as or obvious to the eye as clusters but may still produce a sharp peak in a histogram of # of pulses vs DM. 
+False positives are typically due to RFI. False negatives may occur if there are multiple weak events whose signature is narrow in DM. In this case there is not much of a shape in SNR vs DM space to fit, and the events may not be identified as or obvious to the eye as clusters but may still produce a sharp peak in a histogram of # of pulses vs DM. 
 
+Histrank:
+--------------
+
+This function finds peaks and valleys in the histogram of number of events vs. DM and calculates a "peakiness" parameter for each peak. This is useful in the cases where there are multiple weak events that can't be fit well by Clusterrank because there's not much of a shape in SNR vs DM space. The "rank" in this case is the peakiness multiplied by the maximum number of pulses per bin for each peak. A histrank > 100 usually indicates a well-defined, narrow peak, which may be due to actual pulses or RFI. 
+
+Peakiness parameter (taken from page 5 of http://www.cs.ucf.edu/courses/cap6411/cap5415/spring02/Lecture-9-h.pdf):
+
+pkns = (1.0 - (vA + vB) / (2.0 * P)) * (1 - N/(W * P))
+
+vA - height of leading valley
+vB - height of trailing valley
+P - height of peak
+N - total number of pulses between the two valleys
+W - total width between the two valleys

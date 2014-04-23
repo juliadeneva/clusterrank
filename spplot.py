@@ -2,15 +2,17 @@ import sys, os
 from glob import glob
 import numpy as np
 from pylab import *
-from math import pi,exp
+from math import pi,exp,log10
 from scipy.special import erf
 from scipy.optimize import leastsq
 from time import time,clock
+from scipy.stats import kurtosis
+#import matplotlib.cm as cm
 
 # 2 --> interactive plots, pause for keypress; print memory usage and cpu time
 # 1 --> plots saved as png, print memory usage and cpu time
 # 0 --> plots saved as png
-debug = 0
+debug = 1
 # min number of events to consider a cluster
 mincluster = 50 
 # max acceptable gap in time between events in a cluster 
@@ -20,11 +22,21 @@ maxtgap = 0.018
 # max acceptable gap in dm between events in a cluster 
 maxdmgap = 1.0 
 # how many iterations to use for finding outliers (more is better but slower; 0 means don't find and reject outliers; 3-5 iterations works well)
-nfitlevel = 3 
+nfitlevel = 3
+# fractional tolerance for fit
+tol = 1.e-04
+# If this is True, divide the best R^2 for the beam by log10(nclusters) to rank down beams with lots of RFI
+docorr = False
 
 # For AO327 (Mock)
 fcenter = 0.327 #GHz center frequency
 bw = 57.0 #MHz bandwidth
+print '\n****** AO327 (MOCK) ******'
+
+# For LWA1
+#fcenter = 0.076 #GHz center frequency
+#bw = 19.6 #MHz bandwidth
+#print '\n****** LWA1 ******'
 
 if debug > 0:
     import resource
@@ -50,7 +62,7 @@ def spplot_classic(times,dms,sigmas,fname,fig):
     # Number of pulses vs DM
     ax1 = subplot2grid((2,2),(0,0))
     hist(dms, bins=len(flist)/2)
-    xlabel('DM(pc/cc')
+    xlabel('DM(pc/cc)')
     ylabel('Number of pulses')
 
     # SNR vs DM
@@ -76,13 +88,20 @@ def spplot_classic(times,dms,sigmas,fname,fig):
         fig.savefig(plottitle+'.png',bbox_inches=0)
         fig.clf()
 
-def plotcluster(times,dms,sigmas,n):
-    colors = ['ro','go','bo','co']
+def plotcluster(times,dms,sigmas,n,ts):
+    colors = ['go','bo','co']
     ncolors = len(colors)
     noccolor = 'ko' # for events not part of a cluster
 
+    #noccolor = [0., 0., 0., 1.] 
+    #colors = cm.jet(np.linspace(0, 1, 11))
+    
     if len(times) >= mincluster:
-        c = colors[n%ncolors]
+        if ts > 0.7:
+            c = 'ro'
+        else:
+            c = colors[n%ncolors]
+        #c = colors[max([0,round(ts*10)])]
     else:
         c = noccolor
 
@@ -90,7 +109,7 @@ def plotcluster(times,dms,sigmas,n):
     plot(times[np.logical_and(sigmas>6,sigmas<=10)], dms[np.logical_and(sigmas>6, sigmas<=10)],c,mec='none',markersize=4)
     plot(times[np.logical_and(sigmas>10,sigmas<=20)], dms[np.logical_and(sigmas>10, sigmas<=20)],c,mec='none',markersize=7)
     plot(times[(sigmas>20)], dms[(sigmas>20)],c,mec='none',markersize=10)
-
+    
 def residuals(p,y,x):
     psrdm,psrw,psrsigma = p
     zeta = 6.91e-3 * bw * (x-psrdm) / (psrw * fcenter*fcenter*fcenter)
@@ -117,7 +136,7 @@ def peval(x,p):
 
 def fitcluster(times,dms,sigmas,n):
     dmpenalty = 1.0
-    colors = ['ro','go','bo','co']
+    colors = ['go','bo','co']
     ncolors = len(colors)
     c = colors[n%ncolors]
 
@@ -130,9 +149,10 @@ def fitcluster(times,dms,sigmas,n):
         plot([bestdm,bestdm],[min(sigmas),max(sigmas)],'k-')
 
     # Starting guesses for the pulsar DM, W(ms), and sigma
-    p0 = [0.99*bestdm,1,bestsigma]
+    #p0 = [0.99*bestdm,1,bestsigma]
+    p0 = [0.99*bestdm,10,bestsigma]
     # Initial fit
-    plsq = leastsq(residuals, p0, args=(sigmas, dms),full_output=1,ftol=1.e-04,xtol=1.e-04)
+    plsq = leastsq(residuals, p0, args=(sigmas, dms),full_output=1,ftol=tol,xtol=tol)
 
     for ifit in range(0,nfitlevel):
         sigma_exp = peval(dms,plsq[0])
@@ -157,7 +177,7 @@ def fitcluster(times,dms,sigmas,n):
                 imax = np.argmax(goodsigmas)
                 return 0.0,times[imax],dms[imax]
             else:
-                plsq = leastsq(residuals, plsq[0], args=(goodsigmas, gooddms),full_output=1,ftol=1.e-04,xtol=1.e-04)
+                plsq = leastsq(residuals, plsq[0], args=(goodsigmas, gooddms),full_output=1,ftol=tol,xtol=tol)
    
         # Plot final fit if outlier rejection ran
         if ifit == nfitlevel-1 and debug > 1:
@@ -206,6 +226,9 @@ def spplot_clusters(times,dms,sigmas,plottitle,fig1,fig2):
         t0 = time()
         c0 = clock()
 
+    f = open('pulselist.txt','w')
+    f.write('Time(s)  DM(pc/cc)  R^2\n')
+
     n = len(times)
     nplotted = 0
     
@@ -218,7 +241,7 @@ def spplot_clusters(times,dms,sigmas,plottitle,fig1,fig2):
     # Number of pulses vs DM
     ax1 = subplot2grid((2,2),(0,0))
     hist(dms, bins=len(flist)/2)
-    xlabel('DM(pc/cc')
+    xlabel('DM(pc/cc)')
     ylabel('Number of pulses')
 
     # SNR vs DM
@@ -264,6 +287,7 @@ def spplot_clusters(times,dms,sigmas,plottitle,fig1,fig2):
             nj = len(ctimes)
             jsort = np.argsort(cdms)
             jcluster = []
+            ts = 0.0
 
             for jj in range(0,nj):
                 if len(jcluster) == 0: #starting a new cluster
@@ -286,6 +310,7 @@ def spplot_clusters(times,dms,sigmas,plottitle,fig1,fig2):
                         if debug > 1:
                             figure(fig2.number)
                         ts,t,dm = fitcluster(cctimes,ccdms,ccsigmas,nclusters)
+                        f.write('%10.4f  %7.2f  %6.2f\n' % (t,dm,ts))
                         if ts > bestts:
                             bestts = ts
                             bestt = t
@@ -297,8 +322,9 @@ def spplot_clusters(times,dms,sigmas,plottitle,fig1,fig2):
 
                     # DM vs time plot
                     figure(fig1.number)
-                    plotcluster(cctimes,ccdms,ccsigmas,nclusters)
+                    plotcluster(cctimes,ccdms,ccsigmas,nclusters,ts)
                     nplotted = nplotted + len(cctimes)
+                    ts = 0.0
 
                     jcluster = []
                 else:
@@ -313,12 +339,22 @@ def spplot_clusters(times,dms,sigmas,plottitle,fig1,fig2):
         else:
             icluster.append(isort[ii+1])
 
+    # Close pulselist file
+    f.close()
+
+    # Penalize beams with many clusters, because those tend to be due to RFI
+    if nclusters > 0 and docorr:
+        tscorrection = round(log10(nclusters))
+        print 'bestts correction: %f' % tscorrection
+        if tscorrection > 1:
+            bestts = bestts/tscorrection
+
     print 'Ntotal: %d Nplotted: %d Clusters: %d Best R^2: %4.2f' % (n,nplotted,nclusters,bestts)
     
     figure(fig1.number)
     xlabel('Time(s)')
     ylabel('DM(pc/cc)')    
-    suptitle('%s\nBest R^2: %4.2f at t = %3.2f, DM = %4.2f' % (plottitle,bestts,bestt,bestdm), fontsize=12)
+    suptitle('%s\nClusters: %d Best R^2: %4.2f at t = %3.2f, DM = %4.2f' % (plottitle,nclusters,bestts,bestt,bestdm), fontsize=12)
     
     if debug > 1:
         raw_input()
@@ -331,8 +367,152 @@ def spplot_clusters(times,dms,sigmas,plottitle,fig1,fig2):
         c1 = clock()
         print "spplot_clusters Wall time: %e s" % (t1-t0)
         print "spplot_clusters CPU time: %e s" % (c1-c0)
-
+    
     return bestts 
+
+# Find valleys between peaks of a histogram
+# (the thresh arg refers to threshold for peakiness for saving vA,P,vB sets)
+def findvals(h,thresh):
+    valleys = []
+    peaks = []
+    peakinesses = []
+    nbins = len(h)
+    #print nbins
+    
+    j = 0
+    vA = h[j] # initialize 1st valley
+    P = vA # initialize peak
+    vB = 0 # initialize 2nd valley
+
+    #The width of the valley, default width is 1
+    W = 1
+
+    #The sum of the counts between vA and vB
+    N = 0
+
+    #The measure of the peak's peakiness
+    peakiness = 0.0
+
+    peak = 0
+    l = False
+
+    try:
+        while j < nbins:
+            l = False
+            vA = h[j]
+            P = vA
+            W = 1
+            N = vA
+
+            i = j + 1
+
+            #To find the peak
+            while P < h[i]:
+                P = h[i]
+                W = W + 1
+                N = N + h[i]
+                i = i + 1
+
+            #To find the border of the valley other side
+            peak = i - 1
+            vB = h[i]
+            N = N + h[i]
+            i = i + 1
+            W = W + 1
+
+            l = True
+            while vB >= h[i]:
+                vB = h[i]
+                W = W + 1
+                N = N + h[i]
+                i = i + 1
+
+            #Calculate peakiness
+            peakiness = (1.0 - (vA + vB) / (2.0 * P)) * (1 - N/(W * P))
+                        
+            #if (peakiness > thresh) and (j not in valleys):
+            if peakiness > thresh:
+                peaks.append(peak)
+                peakinesses.append(peakiness)
+                valleys.append(j)
+                valleys.append(i - 1)
+
+            j = i - 1
+    except:
+        if (l):
+            vB = h[-1]
+
+            peakiness = (1.0 - (vA + vB) / (2.0 * P)) * (1 - N/(W * P))
+            
+            if peakiness > thresh:
+                valleys.append(j)
+                valleys.append(nbins-1)
+                peaks.append(nbins-1)
+                peakinesses.append(peakiness)
+            
+            return valleys,peaks,peakinesses
+        
+    return valleys,peaks,peakinesses
+
+# Look for peaks in the histogram of # of pulses vs DM
+def histrank(dms,plottitle,fig):
+    figure(fig.number)
+    n, bins, patches = hist(dms,100)
+    # get the bin centers (hist returns edges)
+    bincenters = 0.5*(bins[1:]+bins[:-1])
+    fig.clf()
+    plot(bincenters,n,'k')
+    
+    # Smooth the histogram
+    #nsmooth = floor(len(n)/10.)
+    #nsmooth = 2.0
+    #wts = np.repeat(1.0, nsmooth) / nsmooth
+    #histsm = np.convolve(wts,n,mode='same')
+    histsm = n
+    plot(bincenters,histsm,'r')
+    
+    # Find valleys - here N_val = 2 * N_pks
+    vals,pks,pkns = findvals(histsm,0.5)
+
+    # Find valleys - here N_val = N_pks + 1
+    #vals = (diff(sign(diff(histsm))) > 0).nonzero()[0] + 1 # local min
+    #pks = (diff(sign(diff(histsm))) < 0).nonzero()[0] + 1 # local max
+    #vals = np.concatenate(([0],vals))
+    #vals = np.concatenate((vals,[len(histsm)-1]))
+
+    nmax = max(n)
+    nmin = min(n)
+    for v in vals:
+        plot([bincenters[v],bincenters[v]],[nmin,nmax],'b-')
+    for p in pks:
+        plot([bincenters[p],bincenters[p]],[nmin,nmax],'r-')
+    
+    nvals = len(vals)
+    npks = len(pks)
+    print 'Nvals: %d Npks: %d' % (nvals,npks)
+
+    # Kurtosis experiments
+    #for ii in range(0,npks):
+        # values belonging to current peak
+    #    a = histsm[vals[2*ii]:vals[2*ii+1]] # if using findvals
+        #a = histsm[vals[ii]:vals[ii+1]]
+    #    kurt = kurtosis(a)
+    #    print 'DM: %6.2f Peakiness: %3.2f Kurt: %2.2f Pkns*Nmax: %2.2f Kurt*Nmax: %2.2f' % (bincenters[pks[ii]],pkns[ii],kurt,histsm[pks[ii]]*pkns[ii],histsm[pks[ii]]*kurt)
+
+    # Find max peakiness and which peak it belongs to
+    # (Peakiness * Npk seems to be a better selector of narrow prominent peaks; just peakiness selects many small peaks down in the noise as well)
+    imaxpkns = np.argmax(pkns)
+    suptitle('Max peakiness: %1.2e at DM = %4.2f' % (pkns[imaxpkns],bincenters[pks[imaxpkns]]))
+    
+    xlabel('DM (pc/cc)')
+    ylabel('# of pulses')
+
+    if debug > 1:
+        raw_input()
+    else:
+        fig.savefig('hist_%04d%s%s%s' % (int(pkns[imaxpkns]),'_',plottitle,'.png'),bbox_inches=0)
+        fig.clf()
+
 
 #########################################################################
 
@@ -357,8 +537,8 @@ if __name__ == "__main__":
     # All DMs
     tmp9 = ['*.singlepulse']
 
-    dmlists = [tmp1,tmp2,tmp7,tmp5]
-    #dmlists = [tmp2]
+    #dmlists = [tmp1,tmp2,tmp7,tmp5]
+    dmlists = [tmp9]
 
     if len(sys.argv) != 2:
         print 'Usage: spplot.py [beamdir]'
@@ -376,9 +556,13 @@ if __name__ == "__main__":
         t0 = time()
         c0 = clock()
 
+    if debug > 1:
+        ion() #turn on interactive mode for paging through plots
+
     # See if reusing one figure instance will prevent memory leakage-->doesn't
     fig1 = figure()
     fig2 = figure()
+    #fig3 = figure()
 
     listcount = 0
     for dmlist in dmlists:
@@ -391,7 +575,7 @@ if __name__ == "__main__":
 
         plottitle = flist[0].split('_')[0]+'_SP'+str(listcount)
         if len(glob('*'+plottitle+'.png')) > 0:
-            print 'File already made: '+plottitle+'.png'
+            print 'File(s) already made: *'+plottitle+'.png'
             listcount = listcount+1
             continue
 
@@ -401,6 +585,10 @@ if __name__ == "__main__":
         dms = []
         sigmas = []
         for f in flist:
+            if os.path.getsize(f) == 0:
+                #print 'File %s empty, skipping' % (f)
+                continue
+
             events = np.loadtxt(f,usecols=(0,1,2),dtype={'names': ('dm', 'sigma', 'time'), 'formats': ('f4', 'f4', 'f4')})
             
             # If there's only one event in the file, it ends up in a numpy '0-d array', which has to be handled differently
@@ -415,15 +603,17 @@ if __name__ == "__main__":
 
         fig1.clf()
         fig2.clf()
+        #fig3.clf()
 
         # What causes infs to be recorded for event SNR?
         iinf = find(sigmas == inf)
         if len(iinf) > 0:
-            print 'Found sigma == inf! No cluster fitting.'
+            print 'Found sigma == inf! No ranking.'
             spplot_classic(times,dms,sigmas, plottitle,fig1)
         else:
             bestts = spplot_clusters(times,dms,sigmas,plottitle,fig1,fig2)
-    
+            histts = histrank(dms,plottitle,fig3)
+
         listcount = listcount + 1
     
         if debug > 0:

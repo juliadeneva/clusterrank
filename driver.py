@@ -1,10 +1,9 @@
 import sys,os
 from subprocess import *
 from glob import glob
-import gc
 
 if len(sys.argv) != 2:
-    print 'Usage: spplot.py [topdir]'
+    print 'Usage: driver.py [topdir]'
     print '(Topdir is the parent of all beam dirs for a given drift strip)'
     sys.exit(1)
 
@@ -28,6 +27,18 @@ for d in dirs:
     del pr
 
     ii = ii+1
+
+# Move all plots to a separate dir
+if not os.path.exists('spplots'):
+    os.mkdir('spplots')
+if not os.path.exists('histplots'):
+    os.mkdir('histplots')
+
+pr = Popen('mv D*/hist*.png histplots/.',shell=True,stdin=PIPE)
+pr.wait()
+pr = Popen('mv D*/*.png spplots/.',shell=True,stdin=PIPE)
+pr.wait()
+
 
 
 
