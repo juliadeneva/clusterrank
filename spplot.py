@@ -26,7 +26,7 @@ nfitlevel = 3
 # fractional tolerance for fit
 tol = 1.e-04
 # If this is True, divide the best R^2 for the beam by log10(nclusters) to rank down beams with lots of RFI
-docorr = False
+docorr = True
 
 # For AO327 (Mock)
 fcenter = 0.327 #GHz center frequency
@@ -537,8 +537,8 @@ if __name__ == "__main__":
     # All DMs
     tmp9 = ['*.singlepulse']
 
-    #dmlists = [tmp1,tmp2,tmp7,tmp5]
-    dmlists = [tmp9]
+    dmlists = [tmp1,tmp2,tmp7,tmp5]
+    #dmlists = [tmp9]
 
     if len(sys.argv) != 2:
         print 'Usage: spplot.py [beamdir]'
