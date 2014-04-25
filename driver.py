@@ -22,21 +22,24 @@ ii = 1
 for d in dirs:
     print '*** Dir %d of %d ***' %(ii,n)
     # Have to do this to go around (pylab?) memory leaks    
-    pr = Popen('python /home/deneva/drift/spplot.py '+d,shell=True,stdin=PIPE)
+    pr = Popen('python /home/deneva/src/clusterrank/spplot.py '+d,shell=True,stdin=PIPE)
     pr.wait()
     del pr
 
     ii = ii+1
 
 # Move all plots to a separate dir
+#if not os.path.exists('histplots'):
+#    os.mkdir('histplots')
+#pr = Popen('mv D*/hist*.png histplots/.',shell=True,stdin=PIPE)
+#pr.wait()
 if not os.path.exists('spplots'):
     os.mkdir('spplots')
-if not os.path.exists('histplots'):
-    os.mkdir('histplots')
-
-pr = Popen('mv D*/hist*.png histplots/.',shell=True,stdin=PIPE)
-pr.wait()
 pr = Popen('mv D*/*.png spplots/.',shell=True,stdin=PIPE)
+pr.wait()
+
+# Merge and sort histrank lists, and move to plot dir
+pr = Popen('cat D*/histrank.txt | sort -n -r -k 4 > spplots/histrank-all.txt',shell=True,stdin=PIPE)
 pr.wait()
 
 

@@ -226,8 +226,7 @@ def spplot_clusters(times,dms,sigmas,plottitle,fig1,fig2):
         t0 = time()
         c0 = clock()
 
-    f = open('pulselist.txt','w')
-    f.write('Time(s)  DM(pc/cc)  R^2\n')
+    f = open('clusterrank-t-dm-r2.txt','a')
 
     n = len(times)
     nplotted = 0
@@ -237,6 +236,7 @@ def spplot_clusters(times,dms,sigmas,plottitle,fig1,fig2):
 
     #fig1 = figure() # for classic SP plot, with color clusters
     figure(fig1.number)
+    subplots_adjust(top=0.87)
 
     # Number of pulses vs DM
     ax1 = subplot2grid((2,2),(0,0))
@@ -354,14 +354,13 @@ def spplot_clusters(times,dms,sigmas,plottitle,fig1,fig2):
     figure(fig1.number)
     xlabel('Time(s)')
     ylabel('DM(pc/cc)')    
-    suptitle('%s\nClusters: %d Best R^2: %4.2f at t = %3.2f, DM = %4.2f' % (plottitle,nclusters,bestts,bestt,bestdm), fontsize=12)
+    suptitle('%s\nClusters: %d Best R^2: %4.2f at t = %3.2f, DM = %4.2f\n  ' % (plottitle,nclusters,bestts,bestt,bestdm), fontsize=11)
     
     if debug > 1:
         raw_input()
-    else:
-        fig1.savefig('%1.2f%s%s%s' % (bestts,'_',plottitle,'.png'),bbox_inches=0)
-        fig1.clf()
-
+    #else:
+    #    fig1.savefig('%1.2f%s%s%s' % (bestts,'_',plottitle,'.png'),bbox_inches=0)
+    
     if debug > 0:
         t1 = time()
         c1 = clock()
@@ -456,20 +455,26 @@ def findvals(h,thresh):
 
 # Look for peaks in the histogram of # of pulses vs DM
 def histrank(dms,plottitle,fig):
-    figure(fig.number)
-    n, bins, patches = hist(dms,100)
+    if debug > 1:
+        figure(fig.number)
+        fig.clf()
+
+    #n, bins, patches = hist(dms,100)
+    n,bins = np.histogram(dms,100)
     # get the bin centers (hist returns edges)
     bincenters = 0.5*(bins[1:]+bins[:-1])
-    fig.clf()
-    plot(bincenters,n,'k')
+
+    #plot(bincenters,n,'k')
     
-    # Smooth the histogram
+    # Smooth the histogram (not good, makes peaks less sharp)
     #nsmooth = floor(len(n)/10.)
     #nsmooth = 2.0
     #wts = np.repeat(1.0, nsmooth) / nsmooth
     #histsm = np.convolve(wts,n,mode='same')
     histsm = n
-    plot(bincenters,histsm,'r')
+
+    if debug > 1:
+        plot(bincenters,histsm,'k')
     
     # Find valleys - here N_val = 2 * N_pks
     vals,pks,pkns = findvals(histsm,0.5)
@@ -482,37 +487,55 @@ def histrank(dms,plottitle,fig):
 
     nmax = max(n)
     nmin = min(n)
-    for v in vals:
-        plot([bincenters[v],bincenters[v]],[nmin,nmax],'b-')
-    for p in pks:
-        plot([bincenters[p],bincenters[p]],[nmin,nmax],'r-')
+
+    if debug > 1:
+        for v in vals:
+            plot([bincenters[v],bincenters[v]],[nmin,nmax],'b-')
+        for p in pks:
+            plot([bincenters[p],bincenters[p]],[nmin,nmax],'r-')
     
     nvals = len(vals)
     npks = len(pks)
-    print 'Nvals: %d Npks: %d' % (nvals,npks)
-
-    # Kurtosis experiments
-    #for ii in range(0,npks):
-        # values belonging to current peak
-    #    a = histsm[vals[2*ii]:vals[2*ii+1]] # if using findvals
-        #a = histsm[vals[ii]:vals[ii+1]]
-    #    kurt = kurtosis(a)
-    #    print 'DM: %6.2f Peakiness: %3.2f Kurt: %2.2f Pkns*Nmax: %2.2f Kurt*Nmax: %2.2f' % (bincenters[pks[ii]],pkns[ii],kurt,histsm[pks[ii]]*pkns[ii],histsm[pks[ii]]*kurt)
-
-    # Find max peakiness and which peak it belongs to
-    # (Peakiness * Npk seems to be a better selector of narrow prominent peaks; just peakiness selects many small peaks down in the noise as well)
-    imaxpkns = np.argmax(pkns)
-    suptitle('Max peakiness: %1.2e at DM = %4.2f' % (pkns[imaxpkns],bincenters[pks[imaxpkns]]))
     
-    xlabel('DM (pc/cc)')
-    ylabel('# of pulses')
+    # Possible histts (histrank merit figures):
+    # [0]:Peakiness * Nevents in highest bin of peak
+    # [1]:Peakiness * Nevents within peak
+    # [2]:Kurtosis of peak * Nevents in highest bin of peak
+    # [3]:Kurtosis of peak * Nevents within peak
+    histts = [-9999,-9999,-9999,-9999]
+    bestdms = [0,0,0,0]
 
-    if debug > 1:
+    for ii in range(0,npks):
+        # values belonging to current peak
+        a = histsm[vals[2*ii]:vals[2*ii+1]] # if using findvals
+        #a = histsm[vals[ii]:vals[ii+1]]
+        kurt = kurtosis(a)
+
+        tmp = pkns[ii]*histsm[pks[ii]]
+        if histts[0] < tmp:
+            histts[0] = tmp
+            bestdms[0] = bincenters[pks[ii]]
+        tmp = pkns[ii]*sum(a)
+        if histts[1] < tmp:
+            histts[1] = tmp
+            bestdms[1] = bincenters[pks[ii]]
+        tmp = kurt*histsm[pks[ii]]
+        if histts[2] < tmp:
+            histts[2] = tmp
+            bestdms[2] = bincenters[pks[ii]]
+        tmp = kurt*sum(a)
+        if histts[3] < tmp:
+            histts[3] = tmp
+            bestdms[3] = bincenters[pks[ii]]
+        #print 'DM: %6.2f Pkns: %3.2f Kurt: %5.2f Pkns*Nmax: %6.2f Pkns*Npk: %6.2f Kurt*Nmax: %6.2f Kurt*Npk: %6.2f' % (bincenters[pks[ii]],pkns[ii],kurt,pkns[ii]*histsm[pks[ii]],pkns[ii]*sum(a),kurt*histsm[pks[ii]],kurt*sum(a))
+    
+    if debug> 1:
+        suptitle('Pkns*Nmax: %6.1f (DM=%6.1f) Pkns*Npk: %6.1f (DM=%6.1f)\n Kurt*Nmax: %6.1f (DM=%6.1f) Kurt*Npk: %6.1f (DM=%6.1f)' % (histts[0],bestdms[0],histts[1],bestdms[1],histts[2],bestdms[2],histts[3],bestdms[3]))
+        xlabel('DM (pc/cc)')
+        ylabel('# of pulses')
         raw_input()
-    else:
-        fig.savefig('hist_%04d%s%s%s' % (int(pkns[imaxpkns]),'_',plottitle,'.png'),bbox_inches=0)
-        fig.clf()
 
+    return histts,bestdms
 
 #########################################################################
 
@@ -562,7 +585,10 @@ if __name__ == "__main__":
     # See if reusing one figure instance will prevent memory leakage-->doesn't
     fig1 = figure()
     fig2 = figure()
-    #fig3 = figure()
+    fig3 = figure()
+
+    # Text output for histrank
+    histout = open('histrank.txt','a')
 
     listcount = 0
     for dmlist in dmlists:
@@ -603,7 +629,7 @@ if __name__ == "__main__":
 
         fig1.clf()
         fig2.clf()
-        #fig3.clf()
+        fig3.clf()
 
         # What causes infs to be recorded for event SNR?
         iinf = find(sigmas == inf)
@@ -612,7 +638,16 @@ if __name__ == "__main__":
             spplot_classic(times,dms,sigmas, plottitle,fig1)
         else:
             bestts = spplot_clusters(times,dms,sigmas,plottitle,fig1,fig2)
-            histts = histrank(dms,plottitle,fig3)
+            histts,bestdms = histrank(dms,plottitle,fig3)
+            
+            histout.write('%6.1f %6.1f %6.1f %6.1f %s\n' % (histts[0],histts[1],histts[2],histts[3],plottitle))
+            figure(fig1.number)
+            suptitle('\n\n\nPkns*Nmax: %d (DM=%d) Pkns*Npk: %d (DM=%d) Kurt*Nmax: %d (DM=%d) Kurt*Npk: %d (DM=%d)' % (histts[0],bestdms[0],histts[1],bestdms[1],histts[2],bestdms[2],histts[3],bestdms[3]),fontsize=10)
+
+            if debug > 1:
+                raw_input()
+            else:
+                fig1.savefig('%1.2f%s%s%s' % (bestts,'_',plottitle,'.png'),bbox_inches=0)
 
         listcount = listcount + 1
     
@@ -625,3 +660,6 @@ if __name__ == "__main__":
             print "spplot_main Wall time: %e s" % (t1-t0)
             print "spplot_main CPU time: %e s\n" % (c1-c0)
 
+    # Close text output for histrank
+    histout.close()
+        
