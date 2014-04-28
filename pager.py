@@ -15,7 +15,8 @@ elif len(sys.argv) == 2:
 else:
     print "Usage: python pager.py <histrank dir> [histrank start line]"
 
-f = open(filedir+'/histrank-all.txt')
+os.chdir(filedir)
+f = open('histrank-all.txt','r')
 lines = f.read()
 lines = lines.split('\n')
 f.close()
@@ -29,6 +30,7 @@ for line in lines[iistart-1:]:
         ts = float(line[3])
         print ii,basename,ts
 
+        # Can also use display, gthumb, etc. The terminate doesn't work properly if the command is not called with exec. 
         if ts > thresh:
             pr = Popen('exec eog '+filedir+'/*'+basename+'*.png',shell=True,stdin=PIPE)
             sleep(3)

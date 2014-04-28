@@ -503,30 +503,35 @@ def histrank(dms,plottitle,fig):
     # [2]:Kurtosis of peak * Nevents in highest bin of peak
     # [3]:Kurtosis of peak * Nevents within peak
     histts = [-9999,-9999,-9999,-9999]
-    bestdms = [0,0,0,0]
+    bestdms = [-9999,-9999,-9999,-9999]
 
     for ii in range(0,npks):
         # values belonging to current peak
         a = histsm[vals[2*ii]:vals[2*ii+1]] # if using findvals
         #a = histsm[vals[ii]:vals[ii+1]]
         kurt = kurtosis(a)
+        currdm = bincenters[pks[ii]]
+
+        # exclude peaks close to DM=0
+        if currdm < 1.5:
+            continue
 
         tmp = pkns[ii]*histsm[pks[ii]]
         if histts[0] < tmp:
             histts[0] = tmp
-            bestdms[0] = bincenters[pks[ii]]
+            bestdms[0] = currdm
         tmp = pkns[ii]*sum(a)
         if histts[1] < tmp:
             histts[1] = tmp
-            bestdms[1] = bincenters[pks[ii]]
+            bestdms[1] = currdm
         tmp = kurt*histsm[pks[ii]]
         if histts[2] < tmp:
             histts[2] = tmp
-            bestdms[2] = bincenters[pks[ii]]
+            bestdms[2] = currdm
         tmp = kurt*sum(a)
         if histts[3] < tmp:
             histts[3] = tmp
-            bestdms[3] = bincenters[pks[ii]]
+            bestdms[3] = currdm
         #print 'DM: %6.2f Pkns: %3.2f Kurt: %5.2f Pkns*Nmax: %6.2f Pkns*Npk: %6.2f Kurt*Nmax: %6.2f Kurt*Npk: %6.2f' % (bincenters[pks[ii]],pkns[ii],kurt,pkns[ii]*histsm[pks[ii]],pkns[ii]*sum(a),kurt*histsm[pks[ii]],kurt*sum(a))
     
     if debug> 1:
