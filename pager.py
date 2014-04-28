@@ -1,23 +1,24 @@
 from subprocess import *
 import sys,os,signal
 from time import sleep
+from operator import itemgetter
 
 # Histrank test statistic cutoff for viewing images
 thresh = 100
 
-f = open('histrank-all.txt')
-lines = f.read()
-f.close()
-lines = lines.split('\n')
-
 if len(sys.argv) == 3:
     iistart = int(sys.argv[2])
     filedir = sys.argv[1]
-else if len(sys.argv) == 2:
+elif len(sys.argv) == 2:
     iistart = 1
     filedir = sys.argv[1]
 else:
     print "Usage: python pager.py <histrank dir> [histrank start line]"
+
+f = open(filedir+'/histrank-all.txt')
+lines = f.read()
+lines = lines.split('\n')
+f.close()
 
 ii = iistart
 for line in lines[iistart-1:]:
@@ -29,7 +30,7 @@ for line in lines[iistart-1:]:
         print ii,basename,ts
 
         if ts > thresh:
-            pr = Popen('exec eog *'+basename+'*.png',shell=True,stdin=PIPE)
+            pr = Popen('exec eog '+filedir+'/*'+basename+'*.png',shell=True,stdin=PIPE)
             sleep(3)
             #raw_input()
             pr.terminate()
