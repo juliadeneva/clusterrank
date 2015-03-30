@@ -30,10 +30,10 @@ for line in lines[iistart-1:]:
         ts = float(line[3])
         print ii,basename,ts
 
-        # Can also use display, gthumb, etc. The terminate doesn't work properly if the command is not called with exec. 
+        # Can also use display, eog, gthumb, etc. The terminate doesn't work properly if the command is not called with exec. 
         if ts > thresh:
-            pr = Popen('exec eog '+filedir+'/*'+basename+'*.png',shell=True,stdin=PIPE)
-            sleep(3)
-            #raw_input()
+            pr = Popen('exec display '+filedir+'/*'+basename+'*.png',shell=True,stdin=PIPE)
+            #sleep(3)
+            raw_input()
             pr.terminate()
     ii = ii+1

@@ -12,7 +12,7 @@ from scipy.stats import kurtosis
 # 2 --> interactive plots, pause for keypress; print memory usage and cpu time
 # 1 --> plots saved as png, print memory usage and cpu time
 # 0 --> plots saved as png
-debug = 1
+debug = 2
 # min number of events to consider a cluster
 mincluster = 50 
 # max acceptable gap in time between events in a cluster 
@@ -565,8 +565,8 @@ if __name__ == "__main__":
     # All DMs
     tmp9 = ['*.singlepulse']
 
-    dmlists = [tmp1,tmp2,tmp7,tmp5]
-    #dmlists = [tmp9]
+    #dmlists = [tmp1,tmp2,tmp7,tmp5]
+    dmlists = [tmp1]
 
     if len(sys.argv) != 2:
         print 'Usage: spplot.py [beamdir]'
