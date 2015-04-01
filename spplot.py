@@ -245,6 +245,7 @@ def rratrap(times,dms,sigmas,n):
     ncolors = len(colors)
     c = colors[n%ncolors]
     dmpenalty = 2.0
+    nsets = 5
 
     if debug > 1:
         plot(dms,sigmas,c,mec='none',label='Good points')
@@ -256,7 +257,6 @@ def rratrap(times,dms,sigmas,n):
     t = times[imaxsnr]
     snr = sigmas[imaxsnr]
 
-    nsets = 5
     nevents = len(dms)
     events_per_set = round(float(nevents)/nsets)
     #print 'Total events in cluster: %d Events per set: %d' % (nevents,events_per_set)
@@ -280,7 +280,9 @@ def rratrap(times,dms,sigmas,n):
     ii = np.argmax(ss)
     ts = 0.0
     
-    if dm > dmpenalty:
+    if dm < dmpenalty:
+        if debug > 1:
+            suptitle('RRATrap rank: %3.2f at t = %3.2f, DM = %3.2f' % (ts,t,dm))
         return 0.0,t,dm
 
     if ii > 0 and ii < 4:
