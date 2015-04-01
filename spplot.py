@@ -240,6 +240,61 @@ def fitcluster(times,dms,sigmas,n):
 
     return rsquared,t,dm
 
+def rratrap(times,dms,sigmas,n):
+    colors = ['go','bo','co']
+    ncolors = len(colors)
+    c = colors[n%ncolors]
+    dmpenalty = 2.0
+
+    if debug > 1:
+        plot(dms,sigmas,c,mec='none',label='Good points')
+        xlabel('DM(pc/cc)')
+        ylabel('SNR')
+
+    imaxsnr = np.argmax(sigmas)
+    dm = dms[imaxsnr]
+    t = times[imaxsnr]
+    snr = sigmas[imaxsnr]
+
+    nsets = 5
+    nevents = len(dms)
+    events_per_set = round(float(nevents)/nsets)
+    #print 'Total events in cluster: %d Events per set: %d' % (nevents,events_per_set)
+    a = np.array([times,dms,sigmas])
+    a = a.transpose()
+    a = a[a[:,1].argsort()]
+    
+    ss = []
+    for ii in range(0,nsets):
+        ilo = ii*events_per_set
+        ihi = min(ilo + events_per_set,nevents)
+        set_sigmas = a[ilo:ihi,2]
+        set_max_sigma = max(set_sigmas)
+        ss.append(set_max_sigma)
+        if debug > 1:
+            plot([a[ilo,1], a[min(ihi,nevents-1),1]],[set_max_sigma,set_max_sigma],'k')
+
+    if debug > 1:
+        plot([dm,dm],[5,snr],'k')
+        
+    ii = np.argmax(ss)
+    ts = 0.0
+    
+    if dm > dmpenalty:
+        return 0.0,t,dm
+
+    if ii > 0 and ii < 4:
+        ts = ts + 0.5 
+    if ss[0] < ss[1] and ss[1] < ss[2]:
+        ts = ts + 0.2
+    if ss[3] < ss[2] and ss[4] < ss[3]:
+        ts = ts + 0.2
+
+    if debug > 1:
+        suptitle('RRATrap rank: %3.2f at t = %3.2f, DM = %3.2f' % (ts,t,dm))
+
+    return ts,t,dm
+
 def spplot_clusters(times,dms,sigmas,plottitle,fig1,fig2):    
 
     if debug > 0:
@@ -329,7 +384,8 @@ def spplot_clusters(times,dms,sigmas,plottitle,fig1,fig2):
                         # Do SNR vs DM fitting for each cluster
                         if debug > 1:
                             figure(fig2.number)
-                        ts,t,dm = fitcluster(cctimes,ccdms,ccsigmas,nclusters)
+                        #ts,t,dm = fitcluster(cctimes,ccdms,ccsigmas,nclusters)
+                        ts,t,dm = rratrap(cctimes,ccdms,ccsigmas,nclusters)
                         f.write('%10.4f  %7.2f  %6.2f\n' % (t,dm,ts))
                         if ts > bestts:
                             bestts = ts
