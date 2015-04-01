@@ -97,11 +97,16 @@ def plotcluster(times,dms,sigmas,n,ts):
     #colors = cm.jet(np.linspace(0, 1, 11))
     
     if len(times) >= mincluster:
-        if ts > 0.7:
+        if ts > 0.8:
             c = 'ro'
+        elif ts > 0.7 and ts < 0.8:
+            c = 'mo'
+        elif ts > 0.6 and ts < 0.7:
+            c = 'co'
+        elif ts > 0.5 and ts < 0.6:
+            c = 'go'
         else:
-            c = colors[n%ncolors]
-        #c = colors[max([0,round(ts*10)])]
+            c = 'bo'
     else:
         c = noccolor
 
@@ -139,6 +144,14 @@ def fitcluster(times,dms,sigmas,n):
     colors = ['go','bo','co']
     ncolors = len(colors)
     c = colors[n%ncolors]
+    #c = 'ro'
+
+    subplot(2,1,2)
+    plot(dms,times,c,mec='none',label='Good points')
+    ylabel('Time (s)')
+    xlabel('DM(pc/cc)')
+    
+    subplot(2,1,1)
 
     imax = np.argmax(sigmas)
     bestdm = dms[imax]
@@ -186,19 +199,26 @@ def fitcluster(times,dms,sigmas,n):
             sigma_exp = peval(gooddms,plsq[0])
             plot(gooddms,sigma_exp,'k-',label='Final fit')
 
+            subplot(2,1,2)
+            plot(dms[ii],times[ii],'ko',label='Outliers')
+
+            subplot(2,1,1)
+
     # Plot final fit if there was no outlier rejection, and calculate R^2
     if nfitlevel == 0:
         ss_tot=((sigmas-sigmas.mean())**2).sum()
         imax = np.argmax(sigmas)
         t = times[imax]
-        dm = dms[imax]
+        #dm = dms[imax]
         sigma_exp = peval(dms,plsq[0])
         plot(dms,sigma_exp,'k-',label='Final fit')
     else:
         ss_tot=((goodsigmas-goodsigmas.mean())**2).sum()
         imax = np.argmax(goodsigmas)
         t = (times[iigood])[imax]
-        dm = gooddms[imax]
+        #dm = gooddms[imax]
+    
+    dm = plsq[0][0]
         
     ss_err=((plsq[2])['fvec']**2).sum()
     rsquared=1.0-(ss_err/ss_tot)
@@ -214,7 +234,7 @@ def fitcluster(times,dms,sigmas,n):
     if debug > 1 :
         xlabel('DM(pc/cc)')
         ylabel('SNR')
-        suptitle('R^2: %4.2f at t = %3.2f s' % (rsquared,t))
+        suptitle('R^2: %4.2f at t = %3.2f s, DM = %3.2f pc/cc' % (rsquared,t,dm))
         legend(bbox_to_anchor=(0.7, 0.8, 0.3, 0.2), loc=1, mode="expand", borderaxespad=0.,frameon=False)
         #legend(bbox_to_anchor=(0, 0, 1, 1), loc=1,bbox_transform=gcf().transFigure)
 
@@ -643,11 +663,12 @@ if __name__ == "__main__":
             spplot_classic(times,dms,sigmas, plottitle,fig1)
         else:
             bestts = spplot_clusters(times,dms,sigmas,plottitle,fig1,fig2)
-            histts,bestdms = histrank(dms,plottitle,fig3)
             
+            histts,bestdms = histrank(dms,plottitle,fig3)
             histout.write('%6.1f %6.1f %6.1f %6.1f %s\n' % (histts[0],histts[1],histts[2],histts[3],plottitle))
+
             figure(fig1.number)
-            suptitle('\n\n\nPkns*Nmax: %d (DM=%d) Pkns*Npk: %d (DM=%d) Kurt*Nmax: %d (DM=%d) Kurt*Npk: %d (DM=%d)' % (histts[0],bestdms[0],histts[1],bestdms[1],histts[2],bestdms[2],histts[3],bestdms[3]),fontsize=10)
+            suptitle('\n\n\nPkns*Nmax: %d (DM=%d) Pkns*Npk: %d (DM=%d) Kurt*Nmax: %d (DM=%d) Kurt*Npk: %d (DM=%d)' % (histts[0],bestdms[0],histts[1],bestdms[1],histts[2],bestdms[2],histts[3],bestdms[3]),fontsize=11)
 
             if debug > 1:
                 raw_input()
