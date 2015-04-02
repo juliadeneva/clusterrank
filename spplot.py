@@ -259,7 +259,6 @@ def rratrap(times,dms,sigmas,n):
 
     nevents = len(dms)
     events_per_set = round(float(nevents)/nsets)
-    #print 'Total events in cluster: %d Events per set: %d' % (nevents,events_per_set)
     a = np.array([times,dms,sigmas])
     a = a.transpose()
     a = a[a[:,1].argsort()]
