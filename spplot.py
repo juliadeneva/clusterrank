@@ -12,7 +12,7 @@ from scipy.stats import kurtosis
 # 2 --> interactive plots, pause for keypress; print memory usage and cpu time
 # 1 --> plots saved as png, print memory usage and cpu time
 # 0 --> plots saved as png
-debug = 2
+debug = 1
 # min number of events to consider a cluster
 mincluster = 50 
 # max acceptable gap in time between events in a cluster 
@@ -25,7 +25,7 @@ maxdmgap = 1.0
 nfitlevel = 3
 # fractional tolerance for fit
 tol = 1.e-04
-# If this is True, divide the best R^2 for the beam by log10(nclusters) to rank down beams with lots of RFI
+# If this is True, divide the best TS for the beam by log10(nclusters) to rank down beams with lots of RFI
 docorr = True
 
 # For AO327 (Mock)
@@ -99,11 +99,11 @@ def plotcluster(times,dms,sigmas,n,ts):
     if len(times) >= mincluster:
         if ts > 0.8:
             c = 'ro'
-        elif ts > 0.7 and ts < 0.8:
+        elif ts > 0.7 and ts <= 0.8:
             c = 'mo'
-        elif ts > 0.6 and ts < 0.7:
+        elif ts > 0.6 and ts <= 0.7:
             c = 'co'
-        elif ts > 0.5 and ts < 0.6:
+        elif ts > 0.5 and ts <= 0.6:
             c = 'go'
         else:
             c = 'bo'
@@ -139,7 +139,7 @@ def peval(x,p):
     zeta = 6.91e-3 * bw * (x-p[0]) / (p[1] * fcenter*fcenter*fcenter)
     return p[2] * 0.5*sqrt(pi) / zeta * erf(zeta)
 
-def fitcluster(times,dms,sigmas,n):
+def clusterrank(times,dms,sigmas,n):
     dmpenalty = 1.0
     colors = ['go','bo','co']
     ncolors = len(colors)
@@ -281,16 +281,30 @@ def rratrap(times,dms,sigmas,n):
     ts = 0.0
     
     if dm < dmpenalty:
-        if debug > 1:
-            suptitle('RRATrap rank: %3.2f at t = %3.2f, DM = %3.2f' % (ts,t,dm))
-        return 0.0,t,dm
+        ts = 0.0
+    else:
+        if ii > 0 and ii < 4:
+            ts = ts + 0.5 
 
-    if ii > 0 and ii < 4:
-        ts = ts + 0.5 
-    if ss[0] < ss[1] and ss[1] < ss[2]:
-        ts = ts + 0.2
-    if ss[3] < ss[2] and ss[4] < ss[3]:
-        ts = ts + 0.2
+        # ^ is the xor operator
+        if ii == 1:
+            if ss[4] < ss[3] and ss[3] < ss[2]:
+                ts = ts + 0.3
+            elif (ss[4] < ss[3]) ^ (ss[3] < ss[2]):
+                ts = ts + 0.1
+        elif ii == 2:
+            if ss[0] < ss[1] and ss[4] < ss[3]:
+                ts = ts + 0.3
+            elif (ss[0] < ss[1]) ^ (ss[4] < ss[3]):
+                ts = ts + 0.1
+        elif ii == 3:
+            if ss[0] < ss[1] and ss[1] < ss[2]:
+                ts = ts + 0.3
+            elif (ss[0] < ss[1]) ^ (ss[1] < ss[2]):
+                ts = ts + 0.1
+
+        if snr > 8.0:
+            ts = ts + 0.1
 
     if debug > 1:
         suptitle('RRATrap rank: %3.2f at t = %3.2f, DM = %3.2f' % (ts,t,dm))
@@ -386,7 +400,7 @@ def spplot_clusters(times,dms,sigmas,plottitle,fig1,fig2):
                         # Do SNR vs DM fitting for each cluster
                         if debug > 1:
                             figure(fig2.number)
-                        #ts,t,dm = fitcluster(cctimes,ccdms,ccsigmas,nclusters)
+                        #ts,t,dm = clusterrank(cctimes,ccdms,ccsigmas,nclusters)
                         ts,t,dm = rratrap(cctimes,ccdms,ccsigmas,nclusters)
                         f.write('%10.4f  %7.2f  %6.2f\n' % (t,dm,ts))
                         if ts > bestts:
@@ -427,12 +441,12 @@ def spplot_clusters(times,dms,sigmas,plottitle,fig1,fig2):
         if tscorrection > 1:
             bestts = bestts/tscorrection
 
-    print 'Ntotal: %d Nplotted: %d Clusters: %d Best R^2: %4.2f' % (n,nplotted,nclusters,bestts)
+    print 'Ntotal: %d Nplotted: %d Clusters: %d Best TS: %4.2f' % (n,nplotted,nclusters,bestts)
     
     figure(fig1.number)
     xlabel('Time(s)')
     ylabel('DM(pc/cc)')    
-    suptitle('%s\nClusters: %d Best R^2: %4.2f at t = %3.2f, DM = %4.2f\n  ' % (plottitle,nclusters,bestts,bestt,bestdm), fontsize=11)
+    suptitle('%s\nClusters: %d Best TS: %4.2f at t = %3.2f, DM = %4.2f\n  ' % (plottitle,nclusters,bestts,bestt,bestdm), fontsize=11)
     
     if debug > 1:
         raw_input()
@@ -643,8 +657,8 @@ if __name__ == "__main__":
     # All DMs
     tmp9 = ['*.singlepulse']
 
-    #dmlists = [tmp1,tmp2,tmp7,tmp5]
-    dmlists = [tmp1]
+    dmlists = [tmp1,tmp2,tmp7,tmp5]
+    #dmlists = [tmp1]
 
     if len(sys.argv) != 2:
         print 'Usage: spplot.py [beamdir]'

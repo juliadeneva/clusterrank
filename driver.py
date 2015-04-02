@@ -14,7 +14,7 @@ if not os.path.exists(topdir):
     sys.exit(1)
 
 os.chdir(topdir)
-dirs = glob('D*')
+dirs = glob('*D*')
 dirs.sort()
 
 n = len(dirs)
@@ -22,7 +22,7 @@ ii = 1
 for d in dirs:
     print '*** Dir %d of %d ***' %(ii,n)
     # Have to do this to go around (pylab?) memory leaks    
-    pr = Popen('python /home/deneva/clusterrank/spplot.py '+d,shell=True,stdin=PIPE)
+    pr = Popen('python /home/deneva/python/clusterrank/spplot.py '+d,shell=True,stdin=PIPE)
     pr.wait()
     del pr
 
@@ -38,11 +38,11 @@ spdir = 'spplots'
 
 if not os.path.exists(spdir):
     os.mkdir(spdir)
-pr = Popen('mv D*/*.png '+spdir+'/.',shell=True,stdin=PIPE)
+pr = Popen('mv *D*/*.png '+spdir+'/.',shell=True,stdin=PIPE)
 pr.wait()
 
 # Merge and sort histrank lists, and move to plot dir
-pr = Popen('cat D*/histrank.txt | sort -n -r -k 4 > '+spdir+'/histrank-all.txt',shell=True,stdin=PIPE)
+pr = Popen('cat *D*/histrank.txt | sort -n -r -k 4 > '+spdir+'/histrank-all.txt',shell=True,stdin=PIPE)
 pr.wait()
 
 
