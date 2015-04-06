@@ -22,7 +22,7 @@ ii = 1
 for d in dirs:
     print '*** Dir %d of %d ***' %(ii,n)
     # Have to do this to go around (pylab?) memory leaks    
-    pr = Popen('python /home/deneva/python/clusterrank/spplot.py '+d,shell=True,stdin=PIPE)
+    pr = Popen('python /home/deneva/clusterrank/spplot.py '+d,shell=True,stdin=PIPE)
     pr.wait()
     del pr
 

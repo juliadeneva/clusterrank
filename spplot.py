@@ -146,12 +146,12 @@ def clusterrank(times,dms,sigmas,n):
     c = colors[n%ncolors]
     #c = 'ro'
 
-    subplot(2,1,2)
-    plot(dms,times,c,mec='none',label='Good points')
-    ylabel('Time (s)')
-    xlabel('DM(pc/cc)')
-    
-    subplot(2,1,1)
+    if debug > 1:
+        subplot(2,1,2)
+        plot(dms,times,c,mec='none',label='Good points')
+        ylabel('Time (s)')
+        xlabel('DM(pc/cc)')
+        subplot(2,1,1)
 
     imax = np.argmax(sigmas)
     bestdm = dms[imax]
@@ -211,7 +211,8 @@ def clusterrank(times,dms,sigmas,n):
         t = times[imax]
         #dm = dms[imax]
         sigma_exp = peval(dms,plsq[0])
-        plot(dms,sigma_exp,'k-',label='Final fit')
+        if debug > 1:
+            plot(dms,sigma_exp,'k-',label='Final fit')
     else:
         ss_tot=((goodsigmas-goodsigmas.mean())**2).sum()
         imax = np.argmax(goodsigmas)
@@ -399,8 +400,8 @@ def spplot_clusters(times,dms,sigmas,plottitle,fig1,fig2):
                         # Do SNR vs DM fitting for each cluster
                         if debug > 1:
                             figure(fig2.number)
-                        #ts,t,dm = clusterrank(cctimes,ccdms,ccsigmas,nclusters)
-                        ts,t,dm = rratrap(cctimes,ccdms,ccsigmas,nclusters)
+                        ts,t,dm = clusterrank(cctimes,ccdms,ccsigmas,nclusters)
+                        #ts,t,dm = rratrap(cctimes,ccdms,ccsigmas,nclusters)
                         f.write('%10.4f  %7.2f  %6.2f\n' % (t,dm,ts))
                         if ts > bestts:
                             bestts = ts
@@ -735,11 +736,11 @@ if __name__ == "__main__":
         else:
             bestts = spplot_clusters(times,dms,sigmas,plottitle,fig1,fig2)
             
-            histts,bestdms = histrank(dms,plottitle,fig3)
-            histout.write('%6.1f %6.1f %6.1f %6.1f %s\n' % (histts[0],histts[1],histts[2],histts[3],plottitle))
+            #histts,bestdms = histrank(dms,plottitle,fig3)
+            #histout.write('%6.1f %6.1f %6.1f %6.1f %s\n' % (histts[0],histts[1],histts[2],histts[3],plottitle))
 
-            figure(fig1.number)
-            suptitle('\n\n\nPkns*Nmax: %d (DM=%d) Pkns*Npk: %d (DM=%d) Kurt*Nmax: %d (DM=%d) Kurt*Npk: %d (DM=%d)' % (histts[0],bestdms[0],histts[1],bestdms[1],histts[2],bestdms[2],histts[3],bestdms[3]),fontsize=11)
+            #figure(fig1.number)
+            #suptitle('\n\nPkns*Nmax: %d (DM=%d) Pkns*Npk: %d (DM=%d) Kurt*Nmax: %d (DM=%d) Kurt*Npk: %d (DM=%d)' % (histts[0],bestdms[0],histts[1],bestdms[1],histts[2],bestdms[2],histts[3],bestdms[3]),fontsize=11)
 
             if debug > 1:
                 raw_input()
