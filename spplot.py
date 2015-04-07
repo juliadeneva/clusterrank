@@ -711,9 +711,14 @@ if __name__ == "__main__":
             if os.path.getsize(f) == 0:
                 #print 'File %s empty, skipping' % (f)
                 continue
-
-            events = np.loadtxt(f,usecols=(0,1,2),dtype={'names': ('dm', 'sigma', 'time'), 'formats': ('f4', 'f4', 'f4')})
             
+            try:
+                events = np.loadtxt(f,usecols=(0,1,2),dtype={'names': ('dm', 'sigma', 'time'), 'formats': ('f4', 'f4', 'f4')})
+            except:
+                print "Current file: "+f
+                print "Exception caught:"
+                print sys.exc_info()[0]
+                
             # If there's only one event in the file, it ends up in a numpy '0-d array', which has to be handled differently
             if len(events['time'].shape) == 0: 
                 times = np.append(times,events['time'])
