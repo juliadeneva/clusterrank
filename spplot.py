@@ -696,7 +696,7 @@ if __name__ == "__main__":
             listcount = listcount+1
             continue
 
-        plottitle = flist[0].split('_')[0]+'_SP'+str(listcount)
+        plottitle = flist[0].split('DM')[0]+'SP'+str(listcount)
         if len(glob('*'+plottitle+'.png')) > 0:
             print 'File(s) already made: *'+plottitle+'.png'
             listcount = listcount+1
