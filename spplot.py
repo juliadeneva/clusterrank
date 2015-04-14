@@ -92,9 +92,6 @@ def plotcluster(times,dms,sigmas,n,ts):
     colors = ['go','bo','co']
     ncolors = len(colors)
     noccolor = 'ko' # for events not part of a cluster
-
-    #noccolor = [0., 0., 0., 1.] 
-    #colors = cm.jet(np.linspace(0, 1, 11))
     
     if len(times) >= mincluster:
         if ts > 0.8:
@@ -110,9 +107,9 @@ def plotcluster(times,dms,sigmas,n,ts):
     else:
         c = noccolor
 
-    plot(times[(sigmas<=6)], dms[(sigmas<=6)],c,mec='none',markersize=2)
-    plot(times[np.logical_and(sigmas>6,sigmas<=10)], dms[np.logical_and(sigmas>6, sigmas<=10)],c,mec='none',markersize=4)
-    plot(times[np.logical_and(sigmas>10,sigmas<=20)], dms[np.logical_and(sigmas>10, sigmas<=20)],c,mec='none',markersize=7)
+    plot(times[(sigmas<=6)], dms[(sigmas<=6)],c,mec='none',markersize=1)
+    plot(times[np.logical_and(sigmas>6,sigmas<=10)], dms[np.logical_and(sigmas>6, sigmas<=10)],c,mec='none',markersize=2)
+    plot(times[np.logical_and(sigmas>10,sigmas<=20)], dms[np.logical_and(sigmas>10, sigmas<=20)],c,mec='none',markersize=5)
     plot(times[(sigmas>20)], dms[(sigmas>20)],c,mec='none',markersize=10)
     
 def residuals(p,y,x):
@@ -642,24 +639,28 @@ if __name__ == "__main__":
     tmp1 = ['*DM[0-9].*singlepulse','*DM[1-3]?.*singlepulse']
     # DM = 30 - 119
     tmp2 = ['*DM[3-9]?.*singlepulse','*DM1[01]?.*singlepulse']
-    # DM = 100 - 319
-    tmp3 = ['*DM[12]??.*singlepulse', '*DM3[01]?.*singlepulse']
-    # DM = 300 - 519
-    tmp4 = ['*DM[34]??.*singlepulse', '*DM5[01]?.*singlepulse']
-    # DM = 500 - 1999 (search tops out at ~1100)
-    tmp5 = ['*DM[5-9]??.*singlepulse', '*DM1???.??.*singlepulse']
-    # DM = 30 - 300
-    tmp6 = ['*DM[3-9]?.*singlepulse', '*DM[1-3]??.*singlepulse']
     # DM = 100 - 500
-    tmp7 = ['*DM[1-4]??.*singlepulse']
+    tmp3 = ['*DM[1-4]??.*singlepulse']
+    # DM = 500 - 1999 (search tops out at ~1100)
+    tmp4 = ['*DM[5-9]??.*singlepulse', '*DM1???.??.*singlepulse']
+
+    # DM = 0 - 30
+    tmp5 = ['*DM[0-9].*singlepulse','*DM[1-2]?.*singlepulse']
+    # DM = 20 - 119
+    tmp6 = ['*DM[2-9]?.*singlepulse','*DM1[01]?.*singlepulse']
+    # DM = 100 - 319
+    tmp7 = ['*DM[12]??.*singlepulse', '*DM3[01]?.*singlepulse']
     # DM = 300 - 1999
     tmp8 = ['*DM[3-9]??.*singlepulse', '*DM1???.??.*singlepulse']
+
     # All DMs
-    tmp9 = ['*.singlepulse']
+    tmpall = ['*.singlepulse']
 
-    dmlists = [tmp1,tmp2,tmp7,tmp5]
-    #dmlists = [tmp1]
-
+    # For Mock data
+    #dmlists = [tmp1,tmp2,tmp3,tmp4]
+    # For PUPPI data
+    dmlists = [tmp5,tmp6,tmp7,tmp8]
+    
     if len(sys.argv) != 2:
         print 'Usage: spplot.py [beamdir]'
         sys.exit(1)
